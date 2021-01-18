@@ -15,7 +15,7 @@ your data, read our :ref:`intro` and our :ref:`getting_started` guide.
    This site is a work in progress. If you have questions, ask them in our `Slack channel <http://join.slack.whylabs.ai/>`__!
 
 .. toctree::
-    :maxdepth: 5
+    :maxdepth: 1
 
     overview
     getting_started
@@ -23,15 +23,6 @@ your data, read our :ref:`intro` and our :ref:`getting_started` guide.
     auto_examples/index
     Changelog <changelog>
     License <license>
-
-Indices and tables
-==================
+    python_api/index
 
 * :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
-
-.. toctree::
-    :maxdepth: 5
-
-    autoapi/index
