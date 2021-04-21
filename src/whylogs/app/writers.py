@@ -5,6 +5,7 @@ import json
 import os
 import typing
 from abc import ABC, abstractmethod
+from logging import getLogger
 from string import Template
 from typing import List
 
@@ -14,6 +15,7 @@ from smart_open import open
 from whylogs.app.output_formats import OutputFormat
 from whylogs.core import DatasetProfile
 
+from .utils import async_wrap
 from ..core.datasetprofile import (
     flatten_dataset_frequent_numbers,
     flatten_dataset_frequent_strings,
@@ -26,6 +28,8 @@ from .config import WriterConfig
 
 DEFAULT_PATH_TEMPLATE = "$name/$session_id"
 DEFAULT_FILENAME_TEMPLATE = "dataset_profile"
+
+logger = getLogger(__name__)
 
 
 class Writer(ABC):
@@ -171,6 +175,10 @@ class LocalWriter(Writer):
         Write a dataset profile to disk
         """
         self.rotation_suffix = rotation_suffix
+        async_wrap(self._do_write, profile)
+        self.rotation_suffix = None
+
+    def _do_write(self, profile):
         for fmt in self.formats:
             if fmt == OutputFormat.json:
                 self._write_json(profile)
@@ -180,7 +188,6 @@ class LocalWriter(Writer):
                 self._write_protobuf(profile)
             else:
                 raise ValueError(f"Unsupported format: {fmt}")
-        self.rotation_suffix = None
 
     def _write_json(self, profile: DatasetProfile):
         """
@@ -278,6 +285,11 @@ class S3Writer(Writer):
         """
         self.rotation_suffix = rotation_suffix
 
+        async_wrap(self._do_write, profile)
+
+        self.rotation_suffix = None
+
+    def _do_write(self, profile):
         for fmt in self.formats:
             if fmt == OutputFormat.json:
                 self._write_json(profile)
@@ -287,7 +299,6 @@ class S3Writer(Writer):
                 self._write_protobuf(profile)
             else:
                 raise ValueError(f"Unsupported format: {fmt}")
-        self.rotation_suffix = None
 
     def _write_json(self, profile: DatasetProfile):
         """
@@ -361,13 +372,14 @@ class WhyLabsWriter(Writer):
         self._write_protobuf(profile)
         self.rotation_suffix = None
 
-    def _write_protobuf(self, profile: DatasetProfile):
+    @staticmethod
+    def _write_protobuf(profile: DatasetProfile):
         """
         Write a protobuf profile to WhyLabs
         """
         from whylogs.whylabs_client.wrapper import upload_profile
 
-        upload_profile(profile)
+        async_wrap(upload_profile, profile)
 
 
 def writer_from_config(config: WriterConfig):
